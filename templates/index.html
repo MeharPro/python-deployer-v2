@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Code Deployer - Made by Mehar</title>
+    <style>
+        body {
+            background-color: #1e1e1e; /* Dark background like a shell */
+            color: #00ff00; /* Green text */
+            font-family: 'Courier New', Courier, monospace; /* Monospaced font for shell-like feel */
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 1.5em;
+            color: #00ff00;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        textarea, input[type="text"] {
+            background-color: #333333; /* Dark background for input fields */
+            color: #00ff00; /* Green text */
+            border: 1px solid #00ff00; /* Green border */
+            font-family: 'Courier New', Courier, monospace;
+            padding: 10px;
+            margin-bottom: 10px;
+            width: 100%; /* Make the inputs span full width */
+        }
+
+        textarea {
+            resize: none; /* Prevent resizing */
+            height: 200px;
+        }
+
+        input[type="submit"] {
+            background-color: #00ff00;
+            color: #1e1e1e;
+            font-family: 'Courier New', Courier, monospace;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #00cc00; /* Lighter green on hover */
+        }
+
+        input::placeholder {
+            color: #00ff00; /* Green placeholder text */
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Python Code Deployer</h1>
+    <form action="/deploy" method="post">
+        <textarea name="code" placeholder="Write your Python code here..."></textarea><br>
+        <input type="text" name="filename" placeholder="Filename (e.g., my-code.py)"><br>
+        <input type="submit" value="Deploy">
+    </form>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Python Shell: {{ filename }}</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+        }
+        #code, #output {
+            width: 100%;
+            height: 200px;
+            background-color: black;
+            color: white;
+            font-family: monospace;
+            overflow-y: scroll;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #444;
+        }
+        #output {
+            height: 300px;
+            white-space: pre-wrap;
+        }
+        #run {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #0e639c;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        h1, h2 {
+            color: #569cd6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Python Shell: {{ filename }}</h1>
+    <h2>Code:</h2>
+    <pre id="code">{{ code }}</pre>
+    <h2>Output:</h2>
+    <div id="output" contenteditable="true"></div>
+    <button id="run">Run Code</button>
+    
+    <script>
+        $(document).ready(function() {
+            var filename = "{{ filename }}";
+            var output = $('#output');
+            var runButton = $('#run');
+            var isRunning = false;
+            var isWaitingForInput = false;
+            var lastInputIndex = 0;  // Track the index where input starts
+    
+            function appendToOutput(text) {
+                output.append(text);
+                lastInputIndex = output.text().length;  // Update the index after prompt
+                output.scrollTop(output[0].scrollHeight);  // Ensure scroll follows content
+            }
+    
+            function runCode() {
+                if (isRunning) return;
+                isRunning = true;
+                output.empty();
+                $.ajax({
+                    url: '/run/' + filename,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({}),
+                    success: function(response) {
+                        if (response.status === 'started') {
+                            pollOutput();
+                        }
+                    },
+                    error: function() {
+                        appendToOutput('Error occurred while processing the code.\n');
+                        isRunning = false;
+                    }
+                });
+            }
+    
+            function pollOutput() {
+                $.ajax({
+                    url: '/io/' + filename,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ action: 'output' }),
+                    success: function(response) {
+                        if (response.status === 'continue') {
+                            appendToOutput(response.output);
+                            if (response.output.trim().endsWith(':')) {
+                                isWaitingForInput = true;
+                                focusOnInput();
+                            } else {
+                                pollOutput();
+                            }
+                        } else if (response.status === 'waiting') {
+                            setTimeout(pollOutput, 100);
+                        } else if (response.status === 'complete') {
+                            isRunning = false;
+                            appendToOutput('\nExecution completed.\n');
+                        }
+                    },
+                    error: function() {
+                        appendToOutput('Error occurred while fetching output.\n');
+                        isRunning = false;
+                    }
+                });
+            }
+    
+            function sendInput(userInput) {
+                $.ajax({
+                    url: '/io/' + filename,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ action: 'input', input: userInput }),
+                    success: function(response) {
+                        if (response.status === 'continue') {
+                            isWaitingForInput = false;
+                            pollOutput();
+                        }
+                    },
+                    error: function() {
+                        appendToOutput('Error occurred while sending input.\n');
+                        isRunning = false;
+                    }
+                });
+            }
+    
+            function focusOnInput() {
+                // Move cursor to the end of the editable content
+                const range = document.createRange();
+                const sel = window.getSelection();
+                const textNode = output[0].lastChild; // Get the last text node
+    
+                if (textNode) {
+                    range.setStart(textNode, textNode.length);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    output.focus();
+                }
+            }
+    
+            output.on('keydown', function(e) {
+                if (e.keyCode === 13 && !e.shiftKey) { // Enter without Shift
+                    e.preventDefault();
+                    if (isWaitingForInput) {
+                        var userInput = output.text().substring(lastInputIndex);  // Only get new input
+                        appendToOutput('\n');
+                        sendInput(userInput);
+                    }
+                }
+                // Prevent deletion before the last input prompt
+                if (output.text().length < lastInputIndex) {
+                    e.preventDefault();  // Stop deletions before the prompt
+                }
+            });
+    
+            runButton.click(runCode);
+    
+            // Allow Ctrl+Enter to run the code
+            $(document).keydown(function(e) {
+                if (e.ctrlKey && e.keyCode == 13) {
+                    runCode();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
